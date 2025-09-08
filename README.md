@@ -8,7 +8,7 @@ npm install
 Clone the project 
 
 ```bash
-  git clone https://github.com/Lrfith/SAKDEE-CARE-PLUS.git
+  git clone https://github.com/northsnx/SAKDEE-CARE-PLUS-V3.git
 ```
 You wll get `SAKDEE-CARE-PLUS` folder.
 Go to the project directory

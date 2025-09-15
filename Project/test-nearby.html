@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ร้านซักผ้าใกล้คุณ</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: "Kanit", sans-serif; }
+    #map { width: 100%; height: 100vh; }
+    .popup { width: 260px; font-size: 14px; }
+    .popup h3 { margin: 0 0 5px; font-size: 16px; font-weight: bold; }
+    .popup img.icon { width: 40px; height: 40px; border-radius: 50%; margin-right: 8px; }
+    .machine-box { display: flex; flex-wrap: wrap; margin-top: 8px; gap: 4px; }
+    .machine { flex: 1 1 48%; text-align: center; border-radius: 8px; padding: 6px; background: #f4f4f4; }
+    .machine.available { background: #d4edda; color: #155724; }
+    .machine.busy { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([13.7563, 100.5018], 12);
+
+    // โหลด tile ฟรีจาก OSM
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // กำหนด icon
+    const shopIcon = L.icon({
+      iconUrl: "https://cdn-icons-png.flaticon.com/512/616/616408.png",
+      iconSize: [40, 40],
+      iconAnchor: [20, 40],
+      popupAnchor: [0, -40]
+    });
+
+    // โหลดร้านทั้งหมดที่ใกล้ตำแหน่ง lat/lon
+    async function loadShops() {
+      try {
+        // mock location ผู้ใช้ (กรุงเทพ)
+        const lat = 13.7563, lon = 100.5018;
+
+        // 1) ดึงร้านใกล้เคียง
+        const res = await fetch(`http://localhost:3000/api/shops/nearby?lat=${lat}&lon=${lon}`);
+        const shops = await res.json();
+
+        for (const shop of shops) {
+          // 2) สร้าง marker
+          const marker = L.marker([shop.latitude, shop.longitude], { icon: shopIcon }).addTo(map);
+
+          // 3) ดึงรายละเอียดแต่ละร้าน
+          const detailRes = await fetch(`http://localhost:3000/api/shops/${shop.id}`);
+          if (!detailRes.ok) continue;
+          const detail = await detailRes.json();
+
+          let machineHtml = "";
+          detail.machines.forEach(m => {
+            const statusClass = (m.status === "available" || m.status === "ว่าง") ? "available" : "busy";
+            machineHtml += `
+              <div class="machine ${statusClass}">
+                <div>🧺 ${m.type}</div>
+                <div>${m.sizeKg} kg</div>
+                <div>${m.status}</div>
+              </div>`;
+          });
+
+          // 4) bind popup
+          marker.bindPopup(`
+            <div class="popup">
+              <div style="display:flex;align-items:center;">
+                <img src="${detail.iconUrl || shop.icon}" class="icon"/>
+                <div>
+                  <h3>${detail.name}</h3>
+                  <div>${detail.address || "-"}</div>
+                </div>
+              </div>
+              <p>📍 ห่าง ${shop.distance} กม.</p>
+              <p>🧺 เครื่องทั้งหมด: ${detail.totalMachines}, ว่าง: ${detail.availableMachines}</p>
+              <div class="machine-box">${machineHtml}</div>
+            </div>
+          `);
+        }
+      } catch (err) {
+        console.error("โหลดร้านผิดพลาด:", err);
+      }
+    }
+
+    loadShops();
+  </script>
+</body>
+</html>

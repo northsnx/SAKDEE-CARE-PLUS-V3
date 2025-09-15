@@ -1,0 +1,92 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  user_id    Int       @id @default(autoincrement())
+  name       String
+  email      String    @unique
+  password   String
+  isVerified Boolean   @default(false)
+  otp        String?
+  otpExpires DateTime?
+  created_at DateTime  @default(now())
+  climate    Climate[] // one to many
+
+  role Role @default(USER)
+}
+
+model Climate {
+  climate_id Int      @id @default(autoincrement())
+  userId     Int
+  city       String
+  temp       Float
+  humidity   Int
+  weather    String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [user_id], onDelete: Cascade)
+}
+
+model News {
+  new_id  Int    @id @default(autoincrement())
+  title   String
+  content String
+
+  images Image[]
+}
+
+model Tips {
+  tips_id Int     @id @default(autoincrement())
+  title   String
+  content String
+  images  Image[]
+}
+
+model LaundryShop {
+  laundryShop_id Int       @id @default(autoincrement())
+  name           String
+  address        String
+  iconUrl        String?
+  latitude       Float
+  longitude      Float
+  machines       Machine[]
+  createdAt      DateTime  @default(now())
+}
+
+model Machine {
+  machine_id Int         @id @default(autoincrement())
+  type       String // washer, dryer
+  sizeKg     Int
+  status     String // available, busy
+  shopId     Int
+  shop       LaundryShop @relation(fields: [shopId], references: [laundryShop_id])
+  createdAt  DateTime    @default(now())
+}
+
+model Image {
+  image_id  Int      @id @default(autoincrement())
+  url       String // secure_url from Cloudinary
+  createdAt DateTime @default(now())
+
+  Tips    Tips? @relation(fields: [Tips_id], references: [tips_id])
+  Tips_id Int?
+
+  News    News? @relation(fields: [News_id], references: [new_id])
+  News_id Int?
+}
+
+enum Role {
+  USER
+  ADMIN
+}

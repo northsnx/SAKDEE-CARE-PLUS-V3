@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ตรวจสอบสภาพอากาศ</title>
+    <style>
+        body {
+            font-family: "Kanit", sans-serif;
+            background: #f3f6fb;
+            display: flex;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 420px;
+            width: 100%;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .header h2 {
+            font-size: 18px;
+            margin: 0;
+            color: #333;
+        }
+
+        .header span {
+            background: #4CAF50;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .weather-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .temp {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ff5722;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            font-size: 40px;
+        }
+
+        .info {
+            font-size: 15px;
+            color: #444;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card" id="weatherCard">
+        <div class="header">
+            <h2 id="city">กำลังโหลด...</h2>
+            <span id="status">...</span>
+        </div>
+        <div class="weather-row">
+            <div class="temp">
+                <span class="icon" id="icon">☀️</span>
+                <span id="temp">--°C</span>
+            </div>
+            <div>
+                <p class="info" id="rain">โอกาสฝนตก --%</p>
+                <p class="info" id="humidity">ความชื้น --%</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJyb2xlIjoiVVNFUiIsImlhdCI6MTc1NzUwODYzMSwiZXhwIjoxNzU3NTA5MjMxfQ.La_d56CCvcZ30N5SeEBu2lR5P1p6sMl0ph78R0Dyt1g"; // 🔑 ใส่ token จริงตรงนี้
+
+        async function loadWeather(city = "Pattaya") {
+            try {
+                const res = await fetch(`http://localhost:3000/api/climate?city=${city}`, {
+                    headers: {
+                        "Authorization": token
+                    }
+                });
+
+                const result = await res.json();
+
+                if (!res.ok) {
+                    document.getElementById("weatherCard").innerHTML = `<p style="color:red">❌ ${result.message}</p>`;
+                    return;
+                }
+
+                const c = result.data;
+                const now = new Date();
+                const hour = now.getHours();
+
+                const icon = (hour >= 6 && hour < 18) ? "☀️" : "🌙";
+
+                let status = "ปานกลาง";
+                if (c.weather === "Rain") status = "ไม่เหมาะสม";
+                else if (c.temp >= 24 && c.temp <= 34 && c.humidity <= 70) status = "เหมาะสม";
+
+                document.getElementById("city").textContent =
+                    `${c.city} • ${now.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}`;
+                document.getElementById("status").textContent = status;
+                document.getElementById("temp").textContent = `${c.temp.toFixed(1)}°C`;
+                document.getElementById("humidity").textContent = `💧 ความชื้น ${c.humidity}%`;
+                document.getElementById("rain").textContent = `🌧️ โอกาสฝนตก ${c.weather === "Rain" ? "100%" : "0%"}`;
+                document.getElementById("icon").textContent = icon;
+
+                const statusEl = document.getElementById("status");
+                statusEl.style.background = status === "เหมาะสม" ? "#4CAF50" :
+                    status === "ไม่เหมาะสม" ? "#f44336" : "#ff9800";
+
+            } catch (err) {
+                document.getElementById("weatherCard").innerHTML = `<p style="color:red">❌ Error: ${err.message}</p>`;
+            }
+        }
+
+        // ✅ เรียกครั้งแรก
+        loadWeather("Bangkok");
+
+        // ✅ ตั้งให้ refresh ทุก 5 วินาที (5000 ms)
+        setInterval(() => loadWeather("Bangkok"), 10000);
+    </script>
+
+</body>
+
+</html>
